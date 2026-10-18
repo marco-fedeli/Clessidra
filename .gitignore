@@ -1,0 +1,8 @@
+# L'eseguibile si pubblica nelle Releases, non nel codice
+*.exe
+
+# L'icona la ricrea build.ps1 dal codice
+*.ico
+
+# File temporanei
+*.tmp
