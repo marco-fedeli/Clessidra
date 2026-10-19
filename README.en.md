@@ -30,7 +30,8 @@ The same approach works for the small operational annoyances of any business.
 - **On-screen countdown**: a small always-on-top box with the time left and a progress bar.
   It never takes focus, so it doesn't interrupt your typing.
   - **Drag** it anywhere; it remembers where you put it.
-  - The **↺** button resets it to the starting duration (even after "Finito").
+  - The **⏸** button at the top left pauses it; it turns into **▶** to resume.
+  - The **↺** button at the top right resets it to the starting duration (even after "Finito").
   - Double-click opens the panel, right-click opens the menu.
   - It can be turned off from the menu: **Countdown sullo schermo**.
 
@@ -64,6 +65,7 @@ The hourglass appears next to the clock (if you don't see it, check the hidden i
 | In the panel: `Esc` or click outside | Closes the panel |
 | Right-click on the hourglass or the countdown | Menu: quick durations, pause, sound, start with Windows, exit |
 | Countdown: drag | Move it anywhere |
+| Countdown: **⏸** / **▶** | Pause and resume |
 | Countdown: **↺** | Start over |
 | Countdown: click on "Finito" | Dismiss it |
 

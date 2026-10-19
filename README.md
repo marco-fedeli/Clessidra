@@ -28,7 +28,8 @@ Lo stesso metodo funziona per i piccoli fastidi operativi di un'azienda.
 - **Countdown sullo schermo**: un piccolo riquadro sempre in primo piano con il tempo che manca e una
   barretta che si riempie. Non prende mai il focus, quindi non interrompe quello che scrivi.
   - Si **sposta** trascinandolo, e ricorda dove l'hai messo.
-  - Il pulsante **↺** lo riporta alla durata di partenza (anche dopo "Finito").
+  - Il pulsante **⏸** in alto a sinistra lo mette in pausa; diventa **▶** per riprendere.
+  - Il pulsante **↺** in alto a destra lo riporta alla durata di partenza (anche dopo "Finito").
   - Doppio clic apre il pannello, clic destro apre il menu.
   - Si può spegnere dal menu: **Countdown sullo schermo**.
 
@@ -62,6 +63,7 @@ Comparirà la clessidra vicino all'orologio (se non la vedi, guarda tra le icone
 | Nel pannello: `Esc` o clic fuori | Chiude il pannello |
 | Clic destro sulla clessidra o sul countdown | Menu: durate rapide, pausa, suono, avvio con Windows, esci |
 | Countdown: trascina | Lo sposti dove vuoi |
+| Countdown: **⏸** / **▶** | Pausa e riprendi |
 | Countdown: **↺** | Ricomincia da capo |
 | Countdown: clic su "Finito" | Lo fa sparire |
 

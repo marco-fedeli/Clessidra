@@ -18,7 +18,7 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Clessidra")]
 [assembly: AssemblyProduct("Clessidra")]
 [assembly: AssemblyDescription("Clessidra - timer con conto alla rovescia")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
 
 namespace Clessidra
 {
@@ -1140,9 +1140,10 @@ namespace Clessidra
         readonly ToolTip tip = new ToolTip();
         string shownKey = "";
         Point downAt;
+        enum Btn { None, Pause, Restart }
         bool pressed;            // tasto sinistro premuto sul riquadro (clic o trascinamento)
-        bool pressedRestart;     // tasto sinistro premuto sul pulsante "ricomincia"
-        bool hot;                // mouse sopra il pulsante "ricomincia"
+        Btn pressedBtn;          // pulsante su cui è stato premuto il tasto sinistro
+        Btn hot;                 // pulsante sotto il mouse
 
         public OverlayForm(TrayContext owner)
         {
@@ -1166,8 +1167,18 @@ namespace Clessidra
 
         int S(int v) { return (int)Math.Round(v * k); }
 
-        // Piccolo pulsante in alto a destra: riporta il countdown alla durata di partenza.
+        // Due piccoli pulsanti: in alto a sinistra pausa/riprendi, in alto a destra ricomincia da capo.
+        Rectangle PauseRect { get { return new Rectangle(S(5), S(5), S(22), S(22)); } }
         Rectangle RestartRect { get { return new Rectangle(Width - S(27), S(5), S(22), S(22)); } }
+
+        bool CanPause { get { return owner.State == TimerState.Running || owner.State == TimerState.Paused; } }
+
+        Btn ButtonAt(Point p)
+        {
+            if (CanPause && PauseRect.Contains(p)) return Btn.Pause;
+            if (RestartRect.Contains(p)) return Btn.Restart;
+            return Btn.None;
+        }
 
         protected override bool ShowWithoutActivation { get { return true; } }
 
@@ -1246,17 +1257,44 @@ namespace Clessidra
                     g.FillRectangle(fill, 0, Height - barH, (int)Math.Round(Width * frac), barH);
             }
 
+            if (CanPause) DrawPause(g, PauseRect, paused);
             DrawRestart(g, RestartRect, done);
+        }
+
+        // Cerchietto sotto il pulsante quando ci passi sopra; restituisce il colore del simbolo.
+        Color ButtonBack(Graphics g, Rectangle r, Btn which, bool done)
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            bool isHot = hot == which;
+            if (isHot)
+                using (var b = new SolidBrush(done ? Color.FromArgb(72, 152, 98) : Color.FromArgb(68, 68, 68)))
+                    g.FillEllipse(b, r);
+            return isHot ? Color.White : done ? Color.FromArgb(205, 235, 213) : Color.FromArgb(170, 170, 170);
+        }
+
+        // Due barrette mentre scorre; triangolo ▶ (riprendi) quando è in pausa.
+        void DrawPause(Graphics g, Rectangle r, bool paused)
+        {
+            Color c = ButtonBack(g, r, Btn.Pause, false);
+            float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f, h = r.Height * 0.42f;
+            using (var b = new SolidBrush(paused ? IconArt.Sand : c))
+            {
+                if (paused)
+                    g.FillPolygon(b, new[] {
+                        new PointF(cx - h * 0.38f, cy - h / 2), new PointF(cx + h * 0.55f, cy), new PointF(cx - h * 0.38f, cy + h / 2) });
+                else
+                {
+                    float w = Math.Max(2f, h * 0.27f), gap = h * 0.22f;
+                    g.FillRectangle(b, cx - gap - w, cy - h / 2, w, h);
+                    g.FillRectangle(b, cx + gap, cy - h / 2, w, h);
+                }
+            }
         }
 
         // Freccia circolare ↺: grigia e discreta, si accende quando ci passi sopra.
         void DrawRestart(Graphics g, Rectangle r, bool done)
         {
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            if (hot)
-                using (var b = new SolidBrush(done ? Color.FromArgb(72, 152, 98) : Color.FromArgb(68, 68, 68)))
-                    g.FillEllipse(b, r);
-            Color c = hot ? Color.White : done ? Color.FromArgb(205, 235, 213) : Color.FromArgb(170, 170, 170);
+            Color c = ButtonBack(g, r, Btn.Restart, done);
             float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f, rad = r.Width * 0.27f;
             // arco da in alto a destra (-50°) girando fino in alto a sinistra; la punta sta all'inizio
             double a0 = -50 * Math.PI / 180;
@@ -1273,26 +1311,34 @@ namespace Clessidra
                     new PointF(at.X - d.X * h * 0.35f - n.X * h * 0.85f, at.Y - d.Y * h * 0.35f - n.Y * h * 0.85f) });
         }
 
-        void SetHot(bool value)
+        void SetHot(Btn value)
         {
             if (hot == value) return;
             hot = value;
-            Cursor = hot ? Cursors.Hand : Cursors.SizeAll;
-            tip.SetToolTip(this, hot ? "Ricomincia da " + Durata.Clock(owner.Total) : null);
+            Cursor = hot != Btn.None ? Cursors.Hand : Cursors.SizeAll;
+            tip.SetToolTip(this, TipText(hot));
             Invalidate();
+        }
+
+        string TipText(Btn b)
+        {
+            if (b == Btn.Restart) return "Ricomincia da " + Durata.Clock(owner.Total);
+            if (b == Btn.Pause) return owner.State == TimerState.Paused ? "Riprendi" : "Pausa";
+            return null;
         }
 
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
-            SetHot(false);
+            SetHot(Btn.None);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
             if (e.Button != MouseButtons.Left) return;
-            if (RestartRect.Contains(e.Location)) { pressedRestart = true; return; }
+            pressedBtn = ButtonAt(e.Location);
+            if (pressedBtn != Btn.None) return;
             pressed = true;
             downAt = Cursor.Position;
         }
@@ -1300,7 +1346,7 @@ namespace Clessidra
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            SetHot(RestartRect.Contains(e.Location));
+            SetHot(ButtonAt(e.Location));
             if (!pressed) return;
             if ((Control.MouseButtons & MouseButtons.Left) == 0) { pressed = false; return; }
             Point p = Cursor.Position;
@@ -1317,10 +1363,15 @@ namespace Clessidra
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            if (e.Button == MouseButtons.Left && pressedRestart)
+            if (e.Button == MouseButtons.Left && pressedBtn != Btn.None)
             {
-                pressedRestart = false;
-                if (RestartRect.Contains(e.Location)) owner.Restart();
+                Btn b = pressedBtn;
+                pressedBtn = Btn.None;
+                if (ButtonAt(e.Location) != b) return;   // rilasciato fuori dal pulsante: niente
+                if (b == Btn.Restart) owner.Restart();
+                else owner.TogglePause();
+                tip.SetToolTip(this, TipText(hot));     // "Pausa" diventa "Riprendi" e viceversa
+                Invalidate();
             }
             else if (e.Button == MouseButtons.Left && pressed) { pressed = false; owner.Dismiss(); }
             else if (e.Button == MouseButtons.Right) owner.Menu.Show(Cursor.Position);
@@ -1329,7 +1380,7 @@ namespace Clessidra
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
-            if (e.Button == MouseButtons.Left && !RestartRect.Contains(e.Location)) owner.ShowPanel();
+            if (e.Button == MouseButtons.Left && ButtonAt(e.Location) == Btn.None) owner.ShowPanel();
         }
     }
 
